@@ -4,162 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4-Way Traffic Signal Timing Simulator</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Sidebar Control Panel */
-        .sidebar {
-            width: 380px;
-            background-color: #1e293b;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            border-right: 1px solid #334155;
-            overflow-y: auto;
-        }
-
-        h2 {
-            font-size: 1.4rem;
-            color: #38bdf8;
-            margin-bottom: 4px;
-        }
-
-        .preset-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            background-color: #334155;
-            color: #fff;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.85rem;
-        }
-
-        .btn:hover {
-            background-color: #475569;
-        }
-
-        .btn.active {
-            background-color: #0284c7;
-        }
-
-        .control-card {
-            background-color: #0f172a;
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-        }
-
-        .control-card h3 {
-            font-size: 0.95rem;
-            color: #94a3b8;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .slider-group {
-            margin-bottom: 14px;
-        }
-
-        .slider-group:last-child {
-            margin-bottom: 0;
-        }
-
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            margin-bottom: 6px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            accent-color: #38bdf8;
-        }
-
-        /* Math & Results Display */
-        .results-card {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            border: 1px solid #0284c7;
-            padding: 16px;
-            border-radius: 8px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .stat-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .stat-value {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .val-ns { color: #4ade80; }
-        .val-ew { color: #f43f5e; }
-
-        /* Simulation Canvas Area */
-        .viewport {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #090d16;
-            position: relative;
-        }
-
-        canvas {
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .phase-indicator {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(8px);
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            font-size: 0.9rem;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -184,14 +29,14 @@
             <h3>Arrival Rates (cars / hour)</h3>
             <div class="slider-group">
                 <div class="slider-label">
-                    <span>North-South ($V_{NS}$)</span>
+                    <span>North-South (V_NS)</span>
                     <span id="val-vns">1200</span>
                 </div>
                 <input type="range" id="input-vns" min="100" max="2000" step="50" value="1200" oninput="updateMath()">
             </div>
             <div class="slider-group">
                 <div class="slider-label">
-                    <span>East-West ($V_{EW}$)</span>
+                    <span>East-West (V_EW)</span>
                     <span id="val-vew">400</span>
                 </div>
                 <input type="range" id="input-vew" min="100" max="2000" step="50" value="400" oninput="updateMath()">
@@ -201,20 +46,20 @@
         <div class="results-card">
             <h3 style="color: #38bdf8; font-size: 0.85rem; margin-bottom: 12px;">OPTIMIZED TIMING</h3>
             <div class="stat-row">
-                <span>Total Cycle Time ($C$):</span>
+                <span>Total Cycle Time (C):</span>
                 <span class="stat-value" style="color: #e2e8f0;">60 sec</span>
             </div>
             <div class="stat-row">
-                <span>Total Lost Time ($L$):</span>
+                <span>Total Lost Time (L):</span>
                 <span class="stat-value" style="color: #94a3b8;">6 sec</span>
             </div>
             <hr style="border-color: #334155; margin: 8px 0;">
             <div class="stat-row">
-                <span>N-S Green Allocation ($g_{NS}$):</span>
+                <span>N-S Green Allocation (g_NS):</span>
                 <span class="stat-value val-ns" id="res-gns">40.5s (67.5%)</span>
             </div>
             <div class="stat-row">
-                <span>E-W Green Allocation ($g_{EW}$):</span>
+                <span>E-W Green Allocation (g_EW):</span>
                 <span class="stat-value val-ew" id="res-gew">13.5s (22.5%)</span>
             </div>
         </div>
@@ -230,226 +75,6 @@
     </div>
 </div>
 
-<script>
-    const canvas = document.getElementById('trafficCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // System Variables
-    let V_NS = 1200;
-    let V_EW = 400;
-    const C = 60; // Total cycle length (seconds)
-    const L = 6;  // Total yellow lost time (seconds)
-    
-    let g_NS = 40.5;
-    let g_EW = 13.5;
-    const yellowDuration = 3;
-
-    // Phase State Management: 0: NS_GREEN, 1: NS_YELLOW, 2: EW_GREEN, 3: EW_YELLOW
-    let currentPhase = 0; 
-    let phaseTime = 0; 
-
-    // Car Entities Storage
-    let cars = [];
-    let lastSpawnNS = 0;
-    let lastSpawnEW = 0;
-
-    function setPreset(type) {
-        document.querySelectorAll('.preset-group .btn').forEach(b => b.classList.remove('active'));
-        if (type === 'morning') {
-            document.getElementById('btn-morning').classList.add('active');
-            V_NS = 1400; V_EW = 400;
-        } else if (type === 'evening') {
-            document.getElementById('btn-evening').classList.add('active');
-            V_NS = 300; V_EW = 1300;
-        } else {
-            document.getElementById('btn-balanced').classList.add('active');
-            V_NS = 800; V_EW = 800;
-        }
-        document.getElementById('input-vns').value = V_NS;
-        document.getElementById('input-vew').value = V_EW;
-        updateMath();
-    }
-
-    function updateMath() {
-        V_NS = parseInt(document.getElementById('input-vns').value);
-        V_EW = parseInt(document.getElementById('input-vew').value);
-        
-        document.getElementById('val-vns').innerText = V_NS;
-        document.getElementById('val-vew').innerText = V_EW;
-
-        const effectiveGreen = C - L;
-        const ratioNS = V_NS / (V_NS + V_EW);
-        const ratioEW = V_EW / (V_NS + V_EW);
-
-        g_NS = Math.max(5, Math.round(effectiveGreen * ratioNS * 10) / 10);
-        g_EW = Math.max(5, Math.round((effectiveGreen - g_NS) * 10) / 10);
-
-        document.getElementById('res-gns').innerText = `${g_NS}s (${Math.round((g_NS/C)*100)}%)`;
-        document.getElementById('res-gew').innerText = `${g_EW}s (${Math.round((g_EW/C)*100)}%)`;
-    }
-
-    // Car Object Constructor
-    class Car {
-        constructor(dir) {
-            this.dir = dir; // 'N', 'S', 'E', 'W'
-            this.speed = 2;
-            this.length = 18;
-            this.width = 10;
-            
-            if (dir === 'N') { this.x = 275; this.y = -20; }
-            if (dir === 'S') { this.x = 315; this.y = 620; }
-            if (dir === 'W') { this.x = -20; this.y = 315; }
-            if (dir === 'E') { this.x = 620; this.y = 275; }
-        }
-
-        move() {
-            let canMove = true;
-            const stopN = 230, stopS = 370, stopW = 230, stopE = 370;
-
-            // Traffic light check
-            if (this.dir === 'N' && this.y + this.length >= stopN - 5 && this.y < stopN) {
-                if (currentPhase !== 0) canMove = false;
-            } else if (this.dir === 'S' && this.y <= stopS + 5 && this.y > stopS) {
-                if (currentPhase !== 0) canMove = false;
-            } else if (this.dir === 'W' && this.x + this.length >= stopW - 5 && this.x < stopW) {
-                if (currentPhase !== 2) canMove = false;
-            } else if (this.dir === 'E' && this.x <= stopE + 5 && this.x > stopE) {
-                if (currentPhase !== 2) canMove = false;
-            }
-
-            // Check distance to car ahead
-            cars.forEach(other => {
-                if (other === this || other.dir !== this.dir) return;
-                if (this.dir === 'N' && other.y > this.y && other.y - this.y < 25) canMove = false;
-                if (this.dir === 'S' && other.y < this.y && this.y - other.y < 25) canMove = false;
-                if (this.dir === 'W' && other.x > this.x && other.x - this.x < 25) canMove = false;
-                if (this.dir === 'E' && other.x < this.x && this.x - other.x < 25) canMove = false;
-            });
-
-            if (canMove) {
-                if (this.dir === 'N') this.y += this.speed;
-                if (this.dir === 'S') this.y -= this.speed;
-                if (this.dir === 'W') this.x += this.speed;
-                if (this.dir === 'E') this.x -= this.speed;
-            }
-        }
-
-        draw() {
-            ctx.fillStyle = (this.dir === 'N' || this.dir === 'S') ? '#38bdf8' : '#fbbf24';
-            if (this.dir === 'N' || this.dir === 'S') {
-                ctx.fillRect(this.x - this.width/2, this.y - this.length/2, this.width, this.length);
-            } else {
-                ctx.fillRect(this.x - this.length/2, this.y - this.width/2, this.length, this.width);
-            }
-        }
-    }
-
-    function drawIntersection() {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, 600, 600);
-
-        // Roads
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(250, 0, 100, 600); // N-S Road
-        ctx.fillRect(0, 250, 600, 100); // E-W Road
-
-        // Lane Dividers
-        ctx.strokeStyle = '#f8fafc';
-        ctx.setLineDash([10, 10]);
-        
-        ctx.beginPath();
-        ctx.moveTo(300, 0); ctx.lineTo(300, 250);
-        ctx.moveTo(300, 350); ctx.lineTo(300, 600);
-        ctx.moveTo(0, 300); ctx.lineTo(250, 300);
-        ctx.moveTo(350, 300); ctx.lineTo(600, 300);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Stop Lines
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(250, 230, 50, 4); // North Stop
-        ctx.fillRect(300, 366, 50, 4); // South Stop
-        ctx.fillRect(230, 300, 4, 50); // West Stop
-        ctx.fillRect(366, 250, 4, 50); // East Stop
-
-        // Signals
-        const nsColor = (currentPhase === 0) ? '#4ade80' : (currentPhase === 1 ? '#facc15' : '#f43f5e');
-        const ewColor = (currentPhase === 2) ? '#4ade80' : (currentPhase === 3 ? '#facc15' : '#f43f5e');
-
-        // Draw Signal Bulbs
-        drawSignal(235, 210, nsColor); // North
-        drawSignal(355, 380, nsColor); // South
-        drawSignal(210, 355, ewColor); // West
-        drawSignal(380, 235, ewColor); // East
-    }
-
-    function drawSignal(x, y, color) {
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-
-    // Logic Step & Animation Loop
-    function gameLoop() {
-        phaseTime += 0.016; // ~60fps step
-
-        // Signal Phase Manager
-        let targetDuration = 0;
-        if (currentPhase === 0) targetDuration = g_NS;
-        else if (currentPhase === 1) targetDuration = yellowDuration;
-        else if (currentPhase === 2) targetDuration = g_EW;
-        else if (currentPhase === 3) targetDuration = yellowDuration;
-
-        if (phaseTime >= targetDuration) {
-            phaseTime = 0;
-            currentPhase = (currentPhase + 1) % 4;
-        }
-
-        // Update HUD
-        const phaseNames = ["N-S GREEN", "N-S YELLOW", "E-W GREEN", "E-W YELLOW"];
-        const phaseColors = ["#4ade80", "#facc15", "#4ade80", "#facc15"];
-        const hud = document.getElementById('current-phase-display');
-        hud.innerText = phaseNames[currentPhase];
-        hud.style.color = phaseColors[currentPhase];
-        document.getElementById('phase-timer').innerText = (targetDuration - phaseTime).toFixed(1);
-
-        // Spawn Traffic proportionally based on Volume (cars/hr)
-        lastSpawnNS += 0.016;
-        lastSpawnEW += 0.016;
-
-        if (lastSpawnNS >= (3600 / V_NS)) {
-            cars.push(new Car('N'));
-            cars.push(new Car('S'));
-            lastSpawnNS = 0;
-        }
-        if (lastSpawnEW >= (3600 / V_EW)) {
-            cars.push(new Car('W'));
-            cars.push(new Car('E'));
-            lastSpawnEW = 0;
-        }
-
-        // Render Canvas Frame
-        drawIntersection();
-
-        cars.forEach((car, index) => {
-            car.move();
-            car.draw();
-            // Clean offscreen cars
-            if (car.x < -40 || car.x > 640 || car.y < -40 || car.y > 640) {
-                cars.splice(index, 1);
-            }
-        });
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    // Initial setup
-    updateMath();
-    gameLoop();
-</script>
+<script src="script.js"></script>
 </body>
 </html>
