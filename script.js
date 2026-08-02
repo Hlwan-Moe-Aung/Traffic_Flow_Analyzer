@@ -25,6 +25,31 @@ let lastSpawnS = 0;
 let lastSpawnE = 0;
 let lastSpawnW = 0;
 
+// View Control / Zoom State Variables
+let zoomLevel = 1.0;
+const MIN_ZOOM = 0.5; // 50% Zoom Out
+const MAX_ZOOM = 2.0; // 200% Zoom In
+
+function changeZoom(delta) {
+    zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomLevel + delta));
+    document.getElementById('btn-zoom-reset').innerText = `${Math.round(zoomLevel * 100)}%`;
+}
+
+function resetZoom() {
+    zoomLevel = 1.0;
+    document.getElementById('btn-zoom-reset').innerText = '100%';
+}
+
+// Enable Mouse Scroll Wheel Zooming
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+        changeZoom(0.08);
+    } else {
+        changeZoom(-0.08);
+    }
+}, { passive: false });
+
 function setPreset(type) {
     document.querySelectorAll('.preset-group .btn').forEach(b => b.classList.remove('active'));
     if (type === 'morning') {
@@ -71,18 +96,50 @@ function updateMath() {
     document.getElementById('res-gew').innerText = `${g_EW}s (${Math.round((g_EW/C)*100)}%)`;
 }
 
+function getNextSpawnInterval(volumePerMin) {
+    const lambda = volumePerMin / 60; // Arrival rate in vehicles per second
+    if (lambda <= 0) return Infinity;
+    // Exponential inter-arrival distribution
+    return -Math.log(1 - Math.random()) / lambda;
+}
+
+let nextSpawnN = getNextSpawnInterval(V_N);
+let nextSpawnS = getNextSpawnInterval(V_S);
+let nextSpawnE = getNextSpawnInterval(V_E);
+let nextSpawnW = getNextSpawnInterval(V_W);
+
+// Helper function to dynamically attempt spawning with spatial headway check
+function trySpawnVehicle(dir, elapsed, nextInterval, currentVolume) {
+    if (elapsed >= nextInterval) {
+        const candidateCar = new Car(dir);
+        
+        // Check if the spawn entry location is physically occupied
+        const isOccupied = cars.some(other => {
+            if (other.dir !== dir || other.lane !== candidateCar.lane) return false;
+            const distance = Math.hypot(other.x - candidateCar.x, other.y - candidateCar.y);
+            return distance < 35; // Safe headway clearance (car length + buffer)
+        });
+
+        if (!isOccupied) {
+            cars.push(candidateCar);
+            return { spawned: true, newInterval: getNextSpawnInterval(currentVolume) };
+        }
+    }
+    return { spawned: false, newInterval: nextInterval };
+}
+
 class Car {
     constructor(dir) {
         this.dir = dir; // 'N', 'S', 'E', 'W'
         this.lane = Math.floor(Math.random() * 3); // 3 Lanes: 0, 1, 2
         
         // Kinematic & Behavior Properties
-        this.maxSpeed = 1.8 + Math.random() * 0.8; // Desired top speed (1.8 to 2.6 px/frame)
-        this.speed = this.maxSpeed;               // Current speed
-        this.accel = 0.03 + Math.random() * 0.02;  // Acceleration capability
-        this.decel = 0.08;                        // Comfortable braking rate
+        this.maxSpeed = 1.8 + Math.random() * 0.8;
+        this.speed = this.maxSpeed;
+        this.accel = 0.03 + Math.random() * 0.02;
+        this.decel = 0.08;
         
-        // Perception-Reaction Time (0.5 to 1.0 seconds)
+        // Perception-Reaction Time Delay
         this.reactionTime = 0.5 + Math.random() * 0.5;
         this.reactionTimer = 0;
         
@@ -93,10 +150,11 @@ class Car {
         const laneOffsets = [10, 30, 50];
         const offset = laneOffsets[this.lane];
 
-        if (dir === 'N') { this.x = 240 + offset; this.y = -20; }
-        if (dir === 'S') { this.x = 300 + offset; this.y = 620; }
-        if (dir === 'W') { this.x = -20; this.y = 300 + offset; }
-        if (dir === 'E') { this.x = 620; this.y = 240 + offset; }
+        // Spawn positions moved 2x farther back relative to stop lines (-260px / 860px)
+        if (dir === 'N') { this.x = 240 + offset; this.y = -260; }
+        if (dir === 'S') { this.x = 300 + offset; this.y = 860; }
+        if (dir === 'W') { this.x = -260; this.y = 300 + offset; }
+        if (dir === 'E') { this.x = 860; this.y = 240 + offset; }
     }
 
     move() {
@@ -199,23 +257,24 @@ class Car {
 }
 
 function drawIntersection() {
+    // Extended ground fill so zooming out reveals ground instead of empty space
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, 600, 600);
+    ctx.fillRect(-600, -600, 1800, 1800);
 
-    // 3-Lane Roads (120px wide total)
+    // 3-Lane Roads (120px wide total extended beyond canvas edges for zoom out)
     ctx.fillStyle = '#334155';
-    ctx.fillRect(240, 0, 120, 600);
-    ctx.fillRect(0, 240, 600, 120);
+    ctx.fillRect(240, -600, 120, 1800);
+    ctx.fillRect(-600, 240, 1800, 120);
 
     // Center Double Solid Lines
     ctx.strokeStyle = '#eab308';
     ctx.lineWidth = 2;
     
     ctx.beginPath();
-    ctx.moveTo(300, 0); ctx.lineTo(300, 240);
-    ctx.moveTo(300, 360); ctx.lineTo(300, 600);
-    ctx.moveTo(0, 300); ctx.lineTo(240, 300);
-    ctx.moveTo(360, 300); ctx.lineTo(600, 300);
+    ctx.moveTo(300, -600); ctx.lineTo(300, 240);
+    ctx.moveTo(300, 360); ctx.lineTo(300, 1200);
+    ctx.moveTo(-600, 300); ctx.lineTo(240, 300);
+    ctx.moveTo(360, 300); ctx.lineTo(1200, 300);
     ctx.stroke();
 
     // Dashed Lane Lines
@@ -225,15 +284,15 @@ function drawIntersection() {
     
     [260, 280, 320, 340].forEach(x => {
         ctx.beginPath();
-        ctx.moveTo(x, 0); ctx.lineTo(x, 240);
-        ctx.moveTo(x, 360); ctx.lineTo(x, 600);
+        ctx.moveTo(x, -600); ctx.lineTo(x, 240);
+        ctx.moveTo(x, 360); ctx.lineTo(x, 1200);
         ctx.stroke();
     });
 
     [260, 280, 320, 340].forEach(y => {
         ctx.beginPath();
-        ctx.moveTo(0, y); ctx.lineTo(240, y);
-        ctx.moveTo(360, y); ctx.lineTo(600, y);
+        ctx.moveTo(-600, y); ctx.lineTo(240, y);
+        ctx.moveTo(360, y); ctx.lineTo(1200, y);
         ctx.stroke();
     });
 
@@ -292,20 +351,41 @@ function gameLoop() {
     lastSpawnE += 0.016;
     lastSpawnW += 0.016;
 
-    if (lastSpawnN >= (60 / V_N)) { cars.push(new Car('N')); lastSpawnN = 0; }
-    if (lastSpawnS >= (60 / V_S)) { cars.push(new Car('S')); lastSpawnS = 0; }
-    if (lastSpawnE >= (60 / V_E)) { cars.push(new Car('E')); lastSpawnE = 0; }
-    if (lastSpawnW >= (60 / V_W)) { cars.push(new Car('W')); lastSpawnW = 0; }
+    // --- Dynamic Stochastic Vehicle Generation ---
+    let resN = trySpawnVehicle('N', lastSpawnN, nextSpawnN, V_N);
+    if (resN.spawned) { lastSpawnN = 0; nextSpawnN = resN.newInterval; }
+
+    let resS = trySpawnVehicle('S', lastSpawnS, nextSpawnS, V_S);
+    if (resS.spawned) { lastSpawnS = 0; nextSpawnS = resS.newInterval; }
+
+    let resE = trySpawnVehicle('E', lastSpawnE, nextSpawnE, V_E);
+    if (resE.spawned) { lastSpawnE = 0; nextSpawnE = resE.newInterval; }
+
+    let resW = trySpawnVehicle('W', lastSpawnW, nextSpawnW, V_W);
+    if (resW.spawned) { lastSpawnW = 0; nextSpawnW = resW.newInterval; }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    ctx.translate(centerX, centerY);
+    ctx.scale(zoomLevel, zoomLevel);
+    ctx.translate(-centerX, -centerY);
 
     drawIntersection();
 
     cars.forEach((car, index) => {
         car.move();
         car.draw();
-        if (car.x < -40 || car.x > 640 || car.y < -40 || car.y > 640) {
+        
+        // Expanded despawn boundaries corresponding to extended approach paths
+        if (car.x < -450 || car.x > 1050 || car.y < -450 || car.y > 1050) {
             cars.splice(index, 1);
         }
     });
+
+    ctx.restore();
 
     requestAnimationFrame(gameLoop);
 }

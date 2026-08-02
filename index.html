@@ -89,6 +89,14 @@
             Active Phase: <strong id="current-phase-display" style="color: #4ade80;">N-S GREEN</strong> 
             (<span id="phase-timer">0</span>s)
         </div>
+
+        <!-- Floating Viewport Zoom Controls -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" onclick="changeZoom(0.1)" title="Zoom In">+</button>
+            <button class="zoom-btn reset-btn" id="btn-zoom-reset" onclick="resetZoom()" title="Reset Zoom">100%</button>
+            <button class="zoom-btn" onclick="changeZoom(-0.1)" title="Zoom Out">−</button>
+        </div>
+
         <canvas id="trafficCanvas" width="600" height="600"></canvas>
     </div>
 </div>

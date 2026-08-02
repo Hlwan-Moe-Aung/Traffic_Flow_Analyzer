@@ -151,4 +151,47 @@ canvas {
     border-radius: 8px;
     border: 1px solid #334155;
     font-size: 0.9rem;
+    z-index: 10;
+}
+
+/* Viewport Zoom Controls Overlay */
+.zoom-controls {
+    position: absolute;
+    bottom: 25px;
+    right: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background-color: rgba(30, 41, 59, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    z-index: 10;
+}
+
+.zoom-btn {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 6px;
+    background-color: #334155;
+    color: #f8fafc;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn.reset-btn {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.zoom-btn:hover {
+    background-color: #0284c7;
+    color: #ffffff;
 }
