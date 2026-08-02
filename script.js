@@ -82,6 +82,10 @@ class Car {
         this.accel = 0.03 + Math.random() * 0.02;  // Acceleration capability
         this.decel = 0.08;                        // Comfortable braking rate
         
+        // Perception-Reaction Time (0.5 to 1.0 seconds)
+        this.reactionTime = 0.5 + Math.random() * 0.5;
+        this.reactionTimer = 0;
+        
         this.length = 18;
         this.width = 10;
         
@@ -122,7 +126,6 @@ class Car {
             let isAhead = false;
             let gap = Infinity;
 
-            // Bumper-to-bumper headway calculation
             if (this.dir === 'N' && other.y > this.y) {
                 isAhead = true;
                 gap = (other.y - other.length / 2) - (this.y + this.length / 2) - carBuffer;
@@ -145,13 +148,25 @@ class Car {
         // 3. Determine Nearest Obstacle Headway
         const netGap = Math.min(distToStop, distToCar);
 
-        // 4. Compute Velocity Profile Using Kinematic Stopping Distance: v = sqrt(2 * a * d)
+        // 4. Compute Velocity Profile with Reaction Delay
         if (netGap <= 0) {
             targetSpeed = 0;
-            this.speed = 0; // Immediate hard clamp to prevent bumper overlap
+            this.speed = 0;
+            this.reactionTimer = 0; // Reset timer while stopped
         } else {
-            const maxSafeSpeed = Math.sqrt(2 * this.decel * netGap);
-            targetSpeed = Math.min(this.maxSpeed, maxSafeSpeed);
+            // Path is clear! If car is currently stopped, enforce driver reaction delay
+            if (this.speed === 0) {
+                if (this.reactionTimer < this.reactionTime) {
+                    this.reactionTimer += 0.016; // Increment timer (~60 FPS)
+                    targetSpeed = 0;
+                } else {
+                    const maxSafeSpeed = Math.sqrt(2 * this.decel * netGap);
+                    targetSpeed = Math.min(this.maxSpeed, maxSafeSpeed);
+                }
+            } else {
+                const maxSafeSpeed = Math.sqrt(2 * this.decel * netGap);
+                targetSpeed = Math.min(this.maxSpeed, maxSafeSpeed);
+            }
         }
 
         // 5. Accelerate or Decelerate towards Target Speed
