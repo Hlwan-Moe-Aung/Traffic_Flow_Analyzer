@@ -29,7 +29,7 @@ function setPreset(type) {
     document.querySelectorAll('.preset-group .btn').forEach(b => b.classList.remove('active'));
     if (type === 'morning') {
         document.getElementById('btn-morning').classList.add('active');
-        V_N = 25; V_S = 10; V_E = 8; V_W = 20; // High inbound to UIT / City
+        V_N = 25; V_S = 10; V_E = 8; V_W = 20;
     } else if (type === 'evening') {
         document.getElementById('btn-evening').classList.add('active');
         V_N = 10; V_S = 25; V_E = 20; V_W = 8;
@@ -71,17 +71,22 @@ function updateMath() {
     document.getElementById('res-gew').innerText = `${g_EW}s (${Math.round((g_EW/C)*100)}%)`;
 }
 
-// Car Entity Class (Supports 3 Lanes per Approach)
 class Car {
     constructor(dir) {
         this.dir = dir; // 'N', 'S', 'E', 'W'
         this.lane = Math.floor(Math.random() * 3); // 3 Lanes: 0, 1, 2
-        this.speed = 2;
+        
+        // Kinematic & Behavior Properties
+        this.maxSpeed = 1.8 + Math.random() * 0.8; // Desired top speed (1.8 to 2.6 px/frame)
+        this.speed = this.maxSpeed;               // Current speed
+        this.accel = 0.03 + Math.random() * 0.02;  // Acceleration capability
+        this.decel = 0.08;                        // Comfortable braking rate
+        
         this.length = 18;
         this.width = 10;
         
-        // 3-Lane offset coordinates (road is 120px wide: 60px incoming, 60px outgoing)
-        const laneOffsets = [10, 30, 50]; // center offset inside each 20px lane
+        // 3-Lane offset coordinates
+        const laneOffsets = [10, 30, 50];
         const offset = laneOffsets[this.lane];
 
         if (dir === 'N') { this.x = 240 + offset; this.y = -20; }
@@ -91,35 +96,81 @@ class Car {
     }
 
     move() {
-        let canMove = true;
+        let targetSpeed = this.maxSpeed;
         const stopN = 220, stopS = 380, stopW = 220, stopE = 380;
+        
+        const carBuffer = 15;      // 15px safe bumper-to-bumper gap when queued
+        const stopLineBuffer = 4; // 4px stop line clearance
 
-        // Traffic light check
-        if (this.dir === 'N' && this.y + this.length >= stopN - 5 && this.y < stopN) {
-            if (currentPhase !== 0) canMove = false;
-        } else if (this.dir === 'S' && this.y <= stopS + 5 && this.y > stopS) {
-            if (currentPhase !== 0) canMove = false;
-        } else if (this.dir === 'W' && this.x + this.length >= stopW - 5 && this.x < stopW) {
-            if (currentPhase !== 2) canMove = false;
-        } else if (this.dir === 'E' && this.x <= stopE + 5 && this.x > stopE) {
-            if (currentPhase !== 2) canMove = false;
+        // 1. Check Distance to Traffic Signal Stop Line
+        let distToStop = Infinity;
+        if (this.dir === 'N' && currentPhase !== 0 && this.y < stopN) {
+            distToStop = (stopN - (this.y + this.length / 2)) - stopLineBuffer;
+        } else if (this.dir === 'S' && currentPhase !== 0 && this.y > stopS) {
+            distToStop = ((this.y - this.length / 2) - stopS) - stopLineBuffer;
+        } else if (this.dir === 'W' && currentPhase !== 2 && this.x < stopW) {
+            distToStop = (stopW - (this.x + this.length / 2)) - stopLineBuffer;
+        } else if (this.dir === 'E' && currentPhase !== 2 && this.x > stopE) {
+            distToStop = ((this.x - this.length / 2) - stopE) - stopLineBuffer;
         }
 
-        // Check distance to car ahead IN THE SAME LANE
+        // 2. Check Distance to Vehicle Directly Ahead in Same Lane
+        let distToCar = Infinity;
         cars.forEach(other => {
             if (other === this || other.dir !== this.dir || other.lane !== this.lane) return;
-            if (this.dir === 'N' && other.y > this.y && other.y - this.y < 25) canMove = false;
-            if (this.dir === 'S' && other.y < this.y && this.y - other.y < 25) canMove = false;
-            if (this.dir === 'W' && other.x > this.x && other.x - this.x < 25) canMove = false;
-            if (this.dir === 'E' && other.x < this.x && this.x - other.x < 25) canMove = false;
+            
+            let isAhead = false;
+            let gap = Infinity;
+
+            // Bumper-to-bumper headway calculation
+            if (this.dir === 'N' && other.y > this.y) {
+                isAhead = true;
+                gap = (other.y - other.length / 2) - (this.y + this.length / 2) - carBuffer;
+            } else if (this.dir === 'S' && other.y < this.y) {
+                isAhead = true;
+                gap = (this.y - this.length / 2) - (other.y + other.length / 2) - carBuffer;
+            } else if (this.dir === 'W' && other.x > this.x) {
+                isAhead = true;
+                gap = (other.x - other.length / 2) - (this.x + this.length / 2) - carBuffer;
+            } else if (this.dir === 'E' && other.x < this.x) {
+                isAhead = true;
+                gap = (this.x - this.length / 2) - (other.x + other.length / 2) - carBuffer;
+            }
+
+            if (isAhead && gap < distToCar) {
+                distToCar = gap;
+            }
         });
 
-        if (canMove) {
-            if (this.dir === 'N') this.y += this.speed;
-            if (this.dir === 'S') this.y -= this.speed;
-            if (this.dir === 'W') this.x += this.speed;
-            if (this.dir === 'E') this.x -= this.speed;
+        // 3. Determine Nearest Obstacle Headway
+        const netGap = Math.min(distToStop, distToCar);
+
+        // 4. Compute Velocity Profile Using Kinematic Stopping Distance: v = sqrt(2 * a * d)
+        if (netGap <= 0) {
+            targetSpeed = 0;
+            this.speed = 0; // Immediate hard clamp to prevent bumper overlap
+        } else {
+            const maxSafeSpeed = Math.sqrt(2 * this.decel * netGap);
+            targetSpeed = Math.min(this.maxSpeed, maxSafeSpeed);
         }
+
+        // 5. Accelerate or Decelerate towards Target Speed
+        if (this.speed < targetSpeed) {
+            this.speed = Math.min(this.speed + this.accel, targetSpeed);
+        } else if (this.speed > targetSpeed) {
+            this.speed = Math.max(this.speed - this.decel, targetSpeed);
+        }
+
+        // Snap negligible coasting values to 0
+        if (targetSpeed === 0 && this.speed < 0.05) {
+            this.speed = 0;
+        }
+
+        // 6. Update Position
+        if (this.dir === 'N') this.y += this.speed;
+        if (this.dir === 'S') this.y -= this.speed;
+        if (this.dir === 'W') this.x += this.speed;
+        if (this.dir === 'E') this.x -= this.speed;
     }
 
     draw() {
@@ -138,31 +189,25 @@ function drawIntersection() {
 
     // 3-Lane Roads (120px wide total)
     ctx.fillStyle = '#334155';
-    ctx.fillRect(240, 0, 120, 600); // N-S Road (3 lanes down, 3 lanes up)
-    ctx.fillRect(0, 240, 600, 120); // E-W Road (3 lanes right, 3 lanes left)
+    ctx.fillRect(240, 0, 120, 600);
+    ctx.fillRect(0, 240, 600, 120);
 
     // Center Double Solid Lines
     ctx.strokeStyle = '#eab308';
     ctx.lineWidth = 2;
     
-    // N-S Center line
     ctx.beginPath();
     ctx.moveTo(300, 0); ctx.lineTo(300, 240);
     ctx.moveTo(300, 360); ctx.lineTo(300, 600);
-    ctx.stroke();
-
-    // E-W Center line
-    ctx.beginPath();
     ctx.moveTo(0, 300); ctx.lineTo(240, 300);
     ctx.moveTo(360, 300); ctx.lineTo(600, 300);
     ctx.stroke();
 
-    // Dashed Lane Lines (Separating the 3 lanes)
+    // Dashed Lane Lines
     ctx.strokeStyle = '#f8fafc';
     ctx.lineWidth = 1;
     ctx.setLineDash([8, 8]);
     
-    // N-S Lane Dividers (at x = 260, 280, 320, 340)
     [260, 280, 320, 340].forEach(x => {
         ctx.beginPath();
         ctx.moveTo(x, 0); ctx.lineTo(x, 240);
@@ -170,7 +215,6 @@ function drawIntersection() {
         ctx.stroke();
     });
 
-    // E-W Lane Dividers (at y = 260, 280, 320, 340)
     [260, 280, 320, 340].forEach(y => {
         ctx.beginPath();
         ctx.moveTo(0, y); ctx.lineTo(240, y);
@@ -178,24 +222,23 @@ function drawIntersection() {
         ctx.stroke();
     });
 
-    ctx.setLineDash([]); // Reset line dash
+    ctx.setLineDash([]);
 
-    // Stop Lines (Covering all 3 incoming lanes)
+    // Stop Lines
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(240, 220, 60, 4); // North Stop Line
-    ctx.fillRect(300, 376, 60, 4); // South Stop Line
-    ctx.fillRect(220, 300, 4, 60); // West Stop Line
-    ctx.fillRect(376, 240, 4, 60); // East Stop Line
+    ctx.fillRect(240, 220, 60, 4);
+    ctx.fillRect(300, 376, 60, 4);
+    ctx.fillRect(220, 300, 4, 60);
+    ctx.fillRect(376, 240, 4, 60);
 
-    // Signal Colors
+    // Signals
     const nsColor = (currentPhase === 0) ? '#4ade80' : (currentPhase === 1 ? '#facc15' : '#f43f5e');
     const ewColor = (currentPhase === 2) ? '#4ade80' : (currentPhase === 3 ? '#facc15' : '#f43f5e');
 
-    // Draw Signal Lights
-    drawSignal(225, 205, nsColor); // North (Pyae Road 7Miles)
-    drawSignal(375, 395, nsColor); // South (Pyae Road)
-    drawSignal(205, 375, ewColor); // West (Parami Road UIT)
-    drawSignal(395, 225, ewColor); // East (Parami Road)
+    drawSignal(225, 205, nsColor);
+    drawSignal(375, 395, nsColor);
+    drawSignal(205, 375, ewColor);
+    drawSignal(395, 225, ewColor);
 }
 
 function drawSignal(x, y, color) {
@@ -208,11 +251,9 @@ function drawSignal(x, y, color) {
     ctx.stroke();
 }
 
-// Logic Step & Animation Loop
 function gameLoop() {
-    phaseTime += 0.016; // ~60fps step
+    phaseTime += 0.016;
 
-    // Signal Phase Manager
     let targetDuration = 0;
     if (currentPhase === 0) targetDuration = g_NS;
     else if (currentPhase === 1) targetDuration = yellowDuration;
@@ -224,7 +265,6 @@ function gameLoop() {
         currentPhase = (currentPhase + 1) % 4;
     }
 
-    // Update HUD
     const phaseNames = ["N-S GREEN", "N-S YELLOW", "E-W GREEN", "E-W YELLOW"];
     const phaseColors = ["#4ade80", "#facc15", "#4ade80", "#facc15"];
     const hud = document.getElementById('current-phase-display');
@@ -232,7 +272,6 @@ function gameLoop() {
     hud.style.color = phaseColors[currentPhase];
     document.getElementById('phase-timer').innerText = (targetDuration - phaseTime).toFixed(1);
 
-    // Spawn Traffic based on individual arrival rates (cars / minute)
     lastSpawnN += 0.016;
     lastSpawnS += 0.016;
     lastSpawnE += 0.016;
@@ -243,13 +282,11 @@ function gameLoop() {
     if (lastSpawnE >= (60 / V_E)) { cars.push(new Car('E')); lastSpawnE = 0; }
     if (lastSpawnW >= (60 / V_W)) { cars.push(new Car('W')); lastSpawnW = 0; }
 
-    // Render Canvas Frame
     drawIntersection();
 
     cars.forEach((car, index) => {
         car.move();
         car.draw();
-        // Clean offscreen cars
         if (car.x < -40 || car.x > 640 || car.y < -40 || car.y > 640) {
             cars.splice(index, 1);
         }
@@ -258,6 +295,5 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Initial setup
 updateMath();
 gameLoop();
