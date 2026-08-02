@@ -26,20 +26,38 @@
         </div>
 
         <div class="control-card">
-            <h3>Arrival Rates (cars / hour)</h3>
+            <h3>Approach Arrival Rates (cars / min)</h3>
+            
             <div class="slider-group">
                 <div class="slider-label">
-                    <span>North-South (V_NS)</span>
-                    <span id="val-vns">1200</span>
+                    <span>North: Pyae Road (7Miles)</span>
+                    <span id="val-vn">20</span>
                 </div>
-                <input type="range" id="input-vns" min="100" max="2000" step="50" value="1200" oninput="updateMath()">
+                <input type="range" id="input-vn" min="2" max="40" step="1" value="20" oninput="updateMath()">
             </div>
+
             <div class="slider-group">
                 <div class="slider-label">
-                    <span>East-West (V_EW)</span>
-                    <span id="val-vew">400</span>
+                    <span>South: Pyae Road</span>
+                    <span id="val-vs">15</span>
                 </div>
-                <input type="range" id="input-vew" min="100" max="2000" step="50" value="400" oninput="updateMath()">
+                <input type="range" id="input-vs" min="2" max="40" step="1" value="15" oninput="updateMath()">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>East: Parami Road</span>
+                    <span id="val-ve">8</span>
+                </div>
+                <input type="range" id="input-ve" min="2" max="40" step="1" value="8" oninput="updateMath()">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>West: Parami Road (UIT)</span>
+                    <span id="val-vw">12</span>
+                </div>
+                <input type="range" id="input-vw" min="2" max="40" step="1" value="12" oninput="updateMath()">
             </div>
         </div>
 
@@ -56,11 +74,11 @@
             <hr style="border-color: #334155; margin: 8px 0;">
             <div class="stat-row">
                 <span>N-S Green Allocation (g_NS):</span>
-                <span class="stat-value val-ns" id="res-gns">40.5s (67.5%)</span>
+                <span class="stat-value val-ns" id="res-gns">34.3s (57.2%)</span>
             </div>
             <div class="stat-row">
                 <span>E-W Green Allocation (g_EW):</span>
-                <span class="stat-value val-ew" id="res-gew">13.5s (22.5%)</span>
+                <span class="stat-value val-ew" id="res-gew">19.7s (32.8%)</span>
             </div>
         </div>
     </div>
