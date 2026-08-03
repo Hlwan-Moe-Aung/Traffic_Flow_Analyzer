@@ -134,12 +134,17 @@ class Car {
         this.lane = Math.floor(Math.random() * 3); // 3 Lanes: 0, 1, 2
         
         // Kinematic & Behavior Properties
-        this.maxSpeed = 1.8 + Math.random() * 0.8;
-        this.speed = this.maxSpeed;
-        this.accel = 0.03 + Math.random() * 0.02;
-        this.decel = 0.08;
+        this.maxSpeed = 1.8 + Math.random() * 0.8; // Desired cruising speed (1.8 - 2.6 px/frame)
+        this.speed = this.maxSpeed;                // Current speed
         
-        // Perception-Reaction Time Delay
+        // REALISTIC ACCELERATION: 0.006 to 0.010 px/frame²
+        // Takes ~4.5 seconds (~270 frames @ 60 FPS) to reach max speed from 0
+        this.accel = 0.006 + Math.random() * 0.004; 
+        
+        // Smooth comfortable deceleration rate
+        this.decel = 0.05; 
+        
+        // Perception-Reaction Time Delay (0.5 to 1.0s)
         this.reactionTime = 0.5 + Math.random() * 0.5;
         this.reactionTimer = 0;
         
@@ -150,7 +155,7 @@ class Car {
         const laneOffsets = [10, 30, 50];
         const offset = laneOffsets[this.lane];
 
-        // Spawn positions moved 2x farther back relative to stop lines (-260px / 860px)
+        // Spawn positions 2x farther back (-260px / 860px)
         if (dir === 'N') { this.x = 240 + offset; this.y = -260; }
         if (dir === 'S') { this.x = 300 + offset; this.y = 860; }
         if (dir === 'W') { this.x = -260; this.y = 300 + offset; }
