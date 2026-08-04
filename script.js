@@ -1,11 +1,14 @@
 const canvas = document.getElementById('trafficCanvas');
 const ctx = canvas.getContext('2d');
 
+let isRunning = false;
+let animId = null;
+
 // System Variables (cars / minute)
 let V_N = 20; // Pyae Road (7Miles)
-let V_S = 15; // Pyae Road
+let V_S = 10; // Pyae Road
 let V_E = 8;  // Parami Road
-let V_W = 12; // Parami Road (UIT)
+let V_W = 7;  // Parami Road (UIT)
 
 const C = 60; // Total cycle length (seconds)
 const L = 6;  // Total yellow lost time (seconds)
@@ -30,6 +33,42 @@ let zoomLevel = 1.0;
 const MIN_ZOOM = 0.5; // 50% Zoom Out
 const MAX_ZOOM = 2.0; // 200% Zoom In
 
+function startSim() {
+    if (!isRunning) {
+        isRunning = true;
+        animId = requestAnimationFrame(gameLoop);
+    }
+}
+
+function stopSim() {
+    isRunning = false;
+    if (animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+    }
+}
+
+function resetSim() {
+    stopSim();
+    
+    // Reset simulation state
+    currentPhase = 0;
+    phaseTime = 0;
+    cars = [];
+    lastSpawnN = 0; lastSpawnS = 0; lastSpawnE = 0; lastSpawnW = 0;
+    
+    // Redraw fresh state
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    ctx.translate(centerX, centerY);
+    ctx.scale(zoomLevel, zoomLevel);
+    ctx.translate(-centerX, -centerY);
+    drawIntersection();
+    ctx.restore();
+}
+
 function changeZoom(delta) {
     zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomLevel + delta));
     document.getElementById('btn-zoom-reset').innerText = `${Math.round(zoomLevel * 100)}%`;
@@ -49,27 +88,6 @@ canvas.addEventListener('wheel', (e) => {
         changeZoom(-0.08);
     }
 }, { passive: false });
-
-function setPreset(type) {
-    document.querySelectorAll('.preset-group .btn').forEach(b => b.classList.remove('active'));
-    if (type === 'morning') {
-        document.getElementById('btn-morning').classList.add('active');
-        V_N = 25; V_S = 10; V_E = 8; V_W = 20;
-    } else if (type === 'evening') {
-        document.getElementById('btn-evening').classList.add('active');
-        V_N = 10; V_S = 25; V_E = 20; V_W = 8;
-    } else {
-        document.getElementById('btn-balanced').classList.add('active');
-        V_N = 15; V_S = 15; V_E = 15; V_W = 15;
-    }
-    
-    document.getElementById('input-vn').value = V_N;
-    document.getElementById('input-vs').value = V_S;
-    document.getElementById('input-ve').value = V_E;
-    document.getElementById('input-vw').value = V_W;
-    
-    updateMath();
-}
 
 function updateMath() {
     V_N = parseInt(document.getElementById('input-vn').value);
@@ -392,8 +410,10 @@ function gameLoop() {
 
     ctx.restore();
 
-    requestAnimationFrame(gameLoop);
+    if (isRunning) {
+        animId = requestAnimationFrame(gameLoop);
+    }
 }
 
 updateMath();
-gameLoop();
+startSim();

@@ -16,13 +16,10 @@
             <p style="font-size: 0.8rem; color: #94a3b8;">Signal Timing Optimization</p>
         </div>
 
-        <div>
-            <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 8px;">RUSH HOUR PRESETS</label>
-            <div class="preset-group">
-                <button class="btn active" id="btn-morning" onclick="setPreset('morning')">Morning</button>
-                <button class="btn" id="btn-evening" onclick="setPreset('evening')">Evening</button>
-                <button class="btn" id="btn-balanced" onclick="setPreset('balanced')">Balanced</button>
-            </div>
+        <div class="preset-group">
+            <button class="btn" id="btn-start" onclick="startSim()">Start</button>
+            <button class="btn" id="btn-stop" onclick="stopSim()">Stop</button>
+            <button class="btn" id="btn-reset" onclick="resetSim()">Reset</button>
         </div>
 
         <div class="control-card">
@@ -33,15 +30,15 @@
                     <span>North: Pyae Road (7Miles)</span>
                     <span id="val-vn">20</span>
                 </div>
-                <input type="range" id="input-vn" min="2" max="40" step="1" value="20" oninput="updateMath()">
+                <input type="range" id="input-vn" min="2" max="50" step="1" value="20" oninput="updateMath()">
             </div>
 
             <div class="slider-group">
                 <div class="slider-label">
                     <span>South: Pyae Road</span>
-                    <span id="val-vs">15</span>
+                    <span id="val-vs">10</span>
                 </div>
-                <input type="range" id="input-vs" min="2" max="40" step="1" value="15" oninput="updateMath()">
+                <input type="range" id="input-vs" min="2" max="50" step="1" value="10" oninput="updateMath()">
             </div>
 
             <div class="slider-group">
@@ -49,15 +46,15 @@
                     <span>East: Parami Road</span>
                     <span id="val-ve">8</span>
                 </div>
-                <input type="range" id="input-ve" min="2" max="40" step="1" value="8" oninput="updateMath()">
+                <input type="range" id="input-ve" min="2" max="50" step="1" value="8" oninput="updateMath()">
             </div>
 
             <div class="slider-group">
                 <div class="slider-label">
                     <span>West: Parami Road (UIT)</span>
-                    <span id="val-vw">12</span>
+                    <span id="val-vw">7</span>
                 </div>
-                <input type="range" id="input-vw" min="2" max="40" step="1" value="12" oninput="updateMath()">
+                <input type="range" id="input-vw" min="2" max="50" step="1" value="7" oninput="updateMath()">
             </div>
         </div>
 
