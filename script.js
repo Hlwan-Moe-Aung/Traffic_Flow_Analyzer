@@ -482,62 +482,111 @@ function drawIntersection() {
     ctx.fillRect(220, 300, 4, 60);
     ctx.fillRect(376, 240, 4, 60);
 
-    // Active Signal Phase Colors
-    const nsLeftColor = (currentPhase === 0) ? '#4ade80' : (currentPhase === 1 ? '#facc15' : '#f43f5e');
-    const nsThruColor = (currentPhase === 2) ? '#4ade80' : (currentPhase === 3 ? '#facc15' : '#f43f5e');
-    const ewLeftColor = (currentPhase === 4) ? '#4ade80' : (currentPhase === 5 ? '#facc15' : '#f43f5e');
-    const ewThruColor = (currentPhase === 6) ? '#4ade80' : (currentPhase === 7 ? '#facc15' : '#f43f5e');
+    // Derive active approach states
+    let nsState = 'RED';
+    if (currentPhase === 0 || currentPhase === 2) nsState = 'GREEN';
+    else if (currentPhase === 1 || currentPhase === 3) nsState = 'YELLOW';
 
-    // Roadside Mount Signal Assembly Heads (Positions off-road so cars never cover them)
-    // North Approach: Mounted on NW Curb (x = 220, y = 195)
-    drawSignalHousing(220, 195, nsLeftColor, nsThruColor, true);
+    let ewState = 'RED';
+    if (currentPhase === 4 || currentPhase === 6) ewState = 'GREEN';
+    else if (currentPhase === 5 || currentPhase === 7) ewState = 'YELLOW';
 
-    // South Approach: Mounted on SE Curb (x = 380, y = 405)
-    drawSignalHousing(380, 405, nsLeftColor, nsThruColor, true);
+    // Multi-Aspect Signal Heads positioned on sidewalk corners outside road boundaries:
+    // North Approach Signal: x = 215, y = 205 (North-West corner)
+    drawSignalHead(215, 205, nsState, 215, 240);
 
-    // West Approach: Mounted on SW Curb (x = 195, y = 380)
-    drawSignalHousing(195, 380, ewLeftColor, ewThruColor, false);
+    // South Approach Signal: x = 385, y = 395 (South-East corner)
+    drawSignalHead(385, 395, nsState, 385, 360);
 
-    // East Approach: Mounted on NE Curb (x = 405, y = 220)
-    drawSignalHousing(405, 220, ewLeftColor, ewThruColor, false);
+    // West Approach Signal: x = 205, y = 385 (South-West corner)
+    drawSignalHead(205, 385, ewState, 240, 385);
+
+    // East Approach Signal: x = 395, y = 215 (North-East corner)
+    drawSignalHead(395, 215, ewState, 360, 215);
 }
 
-function drawSignalHousing(x, y, leftColor, thruColor, isVertical) {
+/**
+ * Draws a 3-aspect vertical signal head with mounting pole
+ * @param {number} x - Center X position of signal head
+ * @param {number} y - Center Y position of signal head
+ * @param {string} state - Active state: 'RED', 'YELLOW', or 'GREEN'
+ * @param {number} poleBaseX - X coordinate where mounting pole connects to sidewalk curb
+ * @param {number} poleBaseY - Y coordinate where mounting pole connects to sidewalk curb
+ */
+function drawSignalHead(x, y, state, poleBaseX, poleBaseY) {
     ctx.save();
-    ctx.fillStyle = '#1e293b';
+
+    // 1. Draw Thin Mounting Pole connecting signal head to sidewalk corner
     ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(poleBaseX, poleBaseY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    // Pole Base Mount Anchor Plate
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.arc(poleBaseX, poleBaseY, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Vertical Dark Grey Rounded Rectangle Housing
+    const width = 18;
+    const height = 46;
+    const cornerRadius = 5;
+
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#475569';
     ctx.lineWidth = 1.5;
 
-    if (isVertical) {
-        // Vertical Housing Box for North/South roadside poles
-        ctx.beginPath();
-        ctx.rect(x - 12, y - 22, 24, 44);
-        ctx.fill();
-        ctx.stroke();
-
-        drawSignalBulb(x, y - 10, leftColor);  // Left Turn Arrow Bulb
-        drawSignalBulb(x, y + 10, thruColor);  // Through/Right Bulb
+    ctx.beginPath();
+    if (ctx.roundRect) {
+        ctx.roundRect(x - width / 2, y - height / 2, width, height, cornerRadius);
     } else {
-        // Horizontal Housing Box for East/West roadside poles
-        ctx.beginPath();
-        ctx.rect(x - 22, y - 12, 44, 24);
-        ctx.fill();
-        ctx.stroke();
-
-        drawSignalBulb(x - 10, y, leftColor);  // Left Turn Arrow Bulb
-        drawSignalBulb(x + 10, y, thruColor);  // Through/Right Bulb
+        ctx.rect(x - width / 2, y - height / 2, width, height);
     }
+    ctx.fill();
+    ctx.stroke();
+
+    // 3. Multi-Aspect Bulbs (Red Top, Yellow Middle, Green Bottom)
+    const bulbRadius = 5;
+    const redY = y - 13;
+    const yellowY = y;
+    const greenY = y + 13;
+
+    drawBulb(x, redY, bulbRadius, state === 'RED' ? '#ef4444' : '#450a0a', state === 'RED');
+    drawBulb(x, yellowY, bulbRadius, state === 'YELLOW' ? '#eab308' : '#422006', state === 'YELLOW');
+    drawBulb(x, greenY, bulbRadius, state === 'GREEN' ? '#22c55e' : '#052e16', state === 'GREEN');
+
     ctx.restore();
 }
 
-function drawSignalBulb(x, y, color) {
+/**
+ * Draws an individual traffic bulb with glow effect when illuminated
+ */
+function drawBulb(bx, by, radius, color, isActive) {
+    ctx.save();
+
     ctx.beginPath();
-    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.arc(bx, by, radius, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
+
+    ctx.strokeStyle = isActive ? '#ffffff' : '#334155';
+    ctx.lineWidth = isActive ? 1.2 : 0.8;
     ctx.stroke();
+
+    // Active Bulb Bloom/Glow Effect
+    if (isActive) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(bx, by, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    ctx.restore();
 }
 
 function gameLoop() {
