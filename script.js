@@ -371,8 +371,8 @@ class Car {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
 
-        // Corridor color coding
-        ctx.fillStyle = (this.dir === 'N' || this.dir === 'S') ? '#38bdf8' : '#fbbf24';
+        // Corridor color coding: Cyan (#38bdf8) for N-S, Purple (#c084fc) for E-W
+        ctx.fillStyle = (this.dir === 'N' || this.dir === 'S') ? '#38bdf8' : '#c084fc';
         
         // Centered Vehicle Rectangle
         ctx.fillRect(-this.length / 2, -this.width / 2, this.length, this.width);
@@ -482,30 +482,55 @@ function drawIntersection() {
     ctx.fillRect(220, 300, 4, 60);
     ctx.fillRect(376, 240, 4, 60);
 
-    // Dual Signal Heads per approach (Inner = Left Turn, Outer = Through/Right)
+    // Active Signal Phase Colors
     const nsLeftColor = (currentPhase === 0) ? '#4ade80' : (currentPhase === 1 ? '#facc15' : '#f43f5e');
     const nsThruColor = (currentPhase === 2) ? '#4ade80' : (currentPhase === 3 ? '#facc15' : '#f43f5e');
     const ewLeftColor = (currentPhase === 4) ? '#4ade80' : (currentPhase === 5 ? '#facc15' : '#f43f5e');
     const ewThruColor = (currentPhase === 6) ? '#4ade80' : (currentPhase === 7 ? '#facc15' : '#f43f5e');
 
-    // North Signal Heads
-    drawSignal(290, 205, nsLeftColor);
-    drawSignal(250, 205, nsThruColor);
+    // Roadside Mount Signal Assembly Heads (Positions off-road so cars never cover them)
+    // North Approach: Mounted on NW Curb (x = 220, y = 195)
+    drawSignalHousing(220, 195, nsLeftColor, nsThruColor, true);
 
-    // South Signal Heads
-    drawSignal(310, 395, nsLeftColor);
-    drawSignal(350, 395, nsThruColor);
+    // South Approach: Mounted on SE Curb (x = 380, y = 405)
+    drawSignalHousing(380, 405, nsLeftColor, nsThruColor, true);
 
-    // West Signal Heads
-    drawSignal(205, 310, ewLeftColor);
-    drawSignal(205, 350, ewThruColor);
+    // West Approach: Mounted on SW Curb (x = 195, y = 380)
+    drawSignalHousing(195, 380, ewLeftColor, ewThruColor, false);
 
-    // East Signal Heads
-    drawSignal(395, 290, ewLeftColor);
-    drawSignal(395, 250, ewThruColor);
+    // East Approach: Mounted on NE Curb (x = 405, y = 220)
+    drawSignalHousing(405, 220, ewLeftColor, ewThruColor, false);
 }
 
-function drawSignal(x, y, color) {
+function drawSignalHousing(x, y, leftColor, thruColor, isVertical) {
+    ctx.save();
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.5;
+
+    if (isVertical) {
+        // Vertical Housing Box for North/South roadside poles
+        ctx.beginPath();
+        ctx.rect(x - 12, y - 22, 24, 44);
+        ctx.fill();
+        ctx.stroke();
+
+        drawSignalBulb(x, y - 10, leftColor);  // Left Turn Arrow Bulb
+        drawSignalBulb(x, y + 10, thruColor);  // Through/Right Bulb
+    } else {
+        // Horizontal Housing Box for East/West roadside poles
+        ctx.beginPath();
+        ctx.rect(x - 22, y - 12, 44, 24);
+        ctx.fill();
+        ctx.stroke();
+
+        drawSignalBulb(x - 10, y, leftColor);  // Left Turn Arrow Bulb
+        drawSignalBulb(x + 10, y, thruColor);  // Through/Right Bulb
+    }
+    ctx.restore();
+}
+
+function drawSignalBulb(x, y, color) {
     ctx.beginPath();
     ctx.arc(x, y, 7, 0, Math.PI * 2);
     ctx.fillStyle = color;
